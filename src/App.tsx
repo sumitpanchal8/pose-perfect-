@@ -1,0 +1,348 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  Gender,
+  Pose,
+  PoseCategory,
+  PoseDifficulty,
+  PoseLocation,
+  PoseMood,
+  UserPreferences,
+} from './types';
+import { ALL_POSES, getPoseOfTheDay, filterPoses } from './data/poses';
+import {
+  loadUserPreferences,
+  saveUserPreferences,
+  toggleFavoritePose,
+  addRecentlyViewed,
+} from './utils/storage';
+import { Navbar } from './components/Navbar';
+import { Hero } from './components/Hero';
+import { PoseFilters } from './components/PoseFilters';
+import { PoseCard } from './components/PoseCard';
+import { PoseDetailsModal } from './components/PoseDetailsModal';
+import { CameraView } from './components/CameraView';
+import { BeginnerGuideModal } from './components/BeginnerGuideModal';
+import { SettingsView } from './components/SettingsView';
+import { Heart, Sparkles, Shuffle, Camera, BookOpen, AlertCircle } from 'lucide-react';
+
+export default function App() {
+  // User Preferences State (persisted to localStorage)
+  const [preferences, setPreferences] = useState<UserPreferences>(loadUserPreferences);
+
+  // App View State ('catalog' | 'favorites' | 'settings' | 'camera')
+  const [currentView, setCurrentView] = useState<'catalog' | 'favorites' | 'settings' | 'camera'>('catalog');
+
+  // Active Poses State
+  const [selectedPose, setSelectedPose] = useState<Pose | null>(null);
+  const [cameraPose, setCameraPose] = useState<Pose | null>(null);
+
+  // Beginner Guide Modal
+  const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
+
+  // Filtering State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<PoseCategory | 'all'>('all');
+  const [selectedLocation, setSelectedLocation] = useState<PoseLocation | 'all'>('all');
+  const [selectedMood, setSelectedMood] = useState<PoseMood | 'all'>('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<PoseDifficulty | 'all'>('all');
+
+  // Handle Gender Switch
+  const handleSelectGender = (newGender: Gender) => {
+    const updated = saveUserPreferences({ gender: newGender });
+    setPreferences(updated);
+    // Reset category if switching gender to show full library
+  };
+
+  // Update preferences helper
+  const handleUpdatePreferences = (partial: Partial<UserPreferences>) => {
+    const updated = saveUserPreferences(partial);
+    setPreferences(updated);
+  };
+
+  // Poses for currently selected gender
+  const currentGenderPoses = useMemo(() => {
+    return ALL_POSES.filter((p: Pose) => p.gender === preferences.gender);
+  }, [preferences.gender]);
+
+  // Daily Pose based on selected gender
+  const dailyPose = useMemo(() => {
+    return getPoseOfTheDay(preferences.gender);
+  }, [preferences.gender]);
+
+  // Filtered poses list
+  const filteredPoses = useMemo(() => {
+    let pool = currentGenderPoses;
+
+    // If favorites view is active
+    if (currentView === 'favorites') {
+      pool = pool.filter((p: Pose) => preferences.favorites.includes(p.id));
+    }
+
+    return filterPoses(pool, {
+      category: selectedCategory,
+      location: selectedLocation,
+      mood: selectedMood,
+      difficulty: selectedDifficulty,
+      searchQuery: searchQuery,
+    });
+  }, [
+    currentGenderPoses,
+    currentView,
+    preferences.favorites,
+    selectedCategory,
+    selectedLocation,
+    selectedMood,
+    selectedDifficulty,
+    searchQuery,
+  ]);
+
+  // Toggle Favorite
+  const handleToggleFavorite = (poseId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const isFav = toggleFavoritePose(poseId);
+    setPreferences(loadUserPreferences());
+  };
+
+  // Open Pose Details
+  const handleOpenPoseDetails = (pose: Pose) => {
+    addRecentlyViewed(pose.id);
+    setSelectedPose(pose);
+  };
+
+  // Launch Camera with Pose
+  const handleLaunchCamera = (pose: Pose, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setCameraPose(pose);
+    setSelectedPose(null);
+    setCurrentView('camera');
+  };
+
+  // Surprise / Random Pose Selector
+  const handleOpenRandomPose = () => {
+    const pool = currentGenderPoses;
+    if (pool.length === 0) return;
+    const randomIdx = Math.floor(Math.random() * pool.length);
+    handleOpenPoseDetails(pool[randomIdx]);
+  };
+
+  // Reset Filters
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('all');
+    setSelectedLocation('all');
+    setSelectedMood('all');
+    setSelectedDifficulty('all');
+  };
+
+  // Prev / Next Pose Navigation inside Details Modal
+  const currentDetailIdx = selectedPose
+    ? filteredPoses.findIndex((p: Pose) => p.id === selectedPose.id)
+    : -1;
+
+  const handleNextDetailPose = () => {
+    if (filteredPoses.length <= 1 || currentDetailIdx === -1) return;
+    const next = (currentDetailIdx + 1) % filteredPoses.length;
+    setSelectedPose(filteredPoses[next]);
+  };
+
+  const handlePrevDetailPose = () => {
+    if (filteredPoses.length <= 1 || currentDetailIdx === -1) return;
+    const prev = (currentDetailIdx - 1 + filteredPoses.length) % filteredPoses.length;
+    setSelectedPose(filteredPoses[prev]);
+  };
+
+  // 1. FULL-SCREEN CAMERA VIEW
+  if (currentView === 'camera' && cameraPose) {
+    return (
+      <CameraView
+        pose={cameraPose}
+        allPoses={currentGenderPoses}
+        onBackToPoses={() => {
+          setCurrentView('catalog');
+          setCameraPose(null);
+        }}
+        onSelectPose={(newPose) => setCameraPose(newPose)}
+        soundEnabled={preferences.soundEnabled}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col selection:bg-cyan-500 selection:text-zinc-950">
+      {/* Top Fixed Navbar */}
+      <Navbar
+        gender={preferences.gender}
+        onSelectGender={handleSelectGender}
+        onOpenRandom={handleOpenRandomPose}
+        onOpenFavorites={() => {
+          setCurrentView(currentView === 'favorites' ? 'catalog' : 'favorites');
+        }}
+        favoritesCount={preferences.favorites.length}
+        onOpenGuide={() => setShowGuideModal(true)}
+        onOpenSettings={() => {
+          setCurrentView(currentView === 'settings' ? 'catalog' : 'settings');
+        }}
+        onNavigateHome={() => setCurrentView('catalog')}
+        currentView={currentView}
+      />
+
+      {/* Main Content Area */}
+      <main className="flex-1">
+        {/* Settings & Privacy View */}
+        {currentView === 'settings' ? (
+          <SettingsView
+            preferences={preferences}
+            onUpdatePreferences={handleUpdatePreferences}
+            onBack={() => setCurrentView('catalog')}
+          />
+        ) : (
+          <>
+            {/* Hero Section (only shown in full catalog view) */}
+            {currentView === 'catalog' && (
+              <Hero
+                gender={preferences.gender}
+                onSelectGender={handleSelectGender}
+                dailyPose={dailyPose}
+                onSelectPose={handleOpenPoseDetails}
+                onQuickStartCamera={(p) => handleLaunchCamera(p)}
+                onOpenGuide={() => setShowGuideModal(true)}
+              />
+            )}
+
+            {/* Catalog / Favorites Section */}
+            <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 space-y-6">
+              
+              {/* Header Title if in Favorites View */}
+              {currentView === 'favorites' && (
+                <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                      <Heart className="h-5 w-5 fill-rose-500" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Your Saved Favorite Poses</h2>
+                      <p className="text-xs text-zinc-400">Quickly access the poses you love most while out taking photos.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setCurrentView('catalog')}
+                    className="px-3 py-1.5 rounded-xl bg-zinc-800 text-xs font-semibold text-zinc-200 hover:text-white"
+                  >
+                    Back to All Poses
+                  </button>
+                </div>
+              )}
+
+              {/* Search & Multi-facet Filter Bar */}
+              <PoseFilters
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+                selectedLocation={selectedLocation}
+                onSelectLocation={setSelectedLocation}
+                selectedMood={selectedMood}
+                onSelectMood={setSelectedMood}
+                selectedDifficulty={selectedDifficulty}
+                onSelectDifficulty={setSelectedDifficulty}
+                onResetFilters={handleResetFilters}
+                totalResults={filteredPoses.length}
+              />
+
+              {/* Poses Grid */}
+              {filteredPoses.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {filteredPoses.map((pose: Pose) => (
+                    <PoseCard
+                      key={pose.id}
+                      pose={pose}
+                      isFavorite={preferences.favorites.includes(pose.id)}
+                      onToggleFavorite={handleToggleFavorite}
+                      onSelectPose={handleOpenPoseDetails}
+                      onLaunchCamera={handleLaunchCamera}
+                    />
+                  ))}
+                </div>
+              ) : (
+                /* Empty state */
+                <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-12 text-center space-y-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-800 text-zinc-400 mx-auto">
+                    <AlertCircle className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-white">No matching poses found</h3>
+                  <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
+                    {currentView === 'favorites'
+                      ? "You haven't saved any favorite poses yet. Tap the heart icon on any pose to save it for quick access."
+                      : "No poses match your current search and filter combination. Try clearing your filters or searching for terms like 'pocket', 'cafe', or 'sitting'."}
+                  </p>
+                  <button
+                    onClick={handleResetFilters}
+                    className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500 text-zinc-950 text-xs font-bold hover:bg-cyan-400 active:scale-95 transition-all"
+                  >
+                    Reset All Filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-white/10 bg-zinc-950/90 py-8 text-xs text-zinc-400 mt-12">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-500 text-zinc-950 font-black text-xs">
+              P
+            </div>
+            <span className="font-bold text-white">PosePerfect</span>
+            <span className="text-zinc-600">|</span>
+            <span>Personal Photography Pose Coach</span>
+          </div>
+
+          <div className="flex items-center gap-4 text-[11px]">
+            <button onClick={() => setShowGuideModal(true)} className="hover:text-white transition-colors">
+              Posing Secrets
+            </button>
+            <button onClick={() => setCurrentView('settings')} className="hover:text-white transition-colors">
+              Privacy Guarantee
+            </button>
+            <button onClick={handleOpenRandomPose} className="hover:text-cyan-400 transition-colors">
+              Random Pose
+            </button>
+          </div>
+
+          <p className="text-[11px] text-zinc-400">
+            100% Client-Side Processing • Zero Cloud Photo Storage
+          </p>
+        </div>
+      </footer>
+
+      {/* Pose Details Modal */}
+      {selectedPose && (
+        <PoseDetailsModal
+          pose={selectedPose}
+          onClose={() => setSelectedPose(null)}
+          onLaunchCamera={(p) => handleLaunchCamera(p)}
+          isFavorite={preferences.favorites.includes(selectedPose.id)}
+          onToggleFavorite={handleToggleFavorite}
+          onNavigateNext={handleNextDetailPose}
+          onNavigatePrev={handlePrevDetailPose}
+        />
+      )}
+
+      {/* Beginner Guide & Wizard Modal */}
+      {showGuideModal && (
+        <BeginnerGuideModal
+          onClose={() => setShowGuideModal(false)}
+          allPoses={ALL_POSES}
+          currentGender={preferences.gender}
+          onSelectAndLaunchPose={(pose) => {
+            setShowGuideModal(false);
+            handleLaunchCamera(pose);
+          }}
+        />
+      )}
+    </div>
+  );
+}
