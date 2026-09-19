@@ -44,7 +44,7 @@ export const PoseIllustration: React.FC<PoseIllustrationProps> = ({
     const type = pose.svgType;
 
     // Close-up / Selfie poses
-    if (type.startsWith('selfie-') || pose.category === 'selfie') {
+    if (type.startsWith('selfie-')) {
       const isSide = type.includes('side') || type.includes('looking-away');
       return (
         <svg viewBox="0 0 200 240" className="w-full h-full max-h-56" preserveAspectRatio="xMidYMid meet">
@@ -202,35 +202,50 @@ export const PoseIllustration: React.FC<PoseIllustrationProps> = ({
     );
   };
 
+  const [imgError, setImgError] = React.useState(false);
+
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-xl bg-gradient-to-b ${getLocationGradient()} border border-white/5 flex flex-col items-center justify-center p-3 select-none ${className}`}
+      className={`relative w-full overflow-hidden rounded-xl bg-gradient-to-b ${getLocationGradient()} border border-white/5 flex flex-col items-center justify-center select-none ${className}`}
     >
       {/* Background visual texture/grid */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
 
+      {/* Actual photo representation if available */}
+      {pose.image && !imgError ? (
+        <div className="relative w-full h-full min-h-[170px] overflow-hidden">
+          <img
+            src={pose.image}
+            alt={pose.title || pose.name}
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30 pointer-events-none" />
+        </div>
+      ) : (
+        <div className="relative z-0 w-full flex items-center justify-center py-2 text-zinc-400 p-3">
+          {renderSilhouette()}
+        </div>
+      )}
+
       {/* Top Badges */}
       {showBadges && (
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none z-10">
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border uppercase ${getDifficultyColor()}`}>
-            {pose.difficulty}
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border uppercase backdrop-blur-md ${getDifficultyColor()}`}>
+            {pose.category.replace('-', ' ')}
           </span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/50 backdrop-blur-md text-zinc-300 border border-white/10">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/60 backdrop-blur-md text-zinc-200 border border-white/15">
             {pose.cameraAngle}
           </span>
         </div>
       )}
 
-      {/* Central Silhouette */}
-      <div className="relative z-0 w-full flex items-center justify-center py-2 text-zinc-400">
-        {renderSilhouette()}
-      </div>
-
       {/* Bottom Sub-tag */}
       {showBadges && (
-        <div className="w-full text-center mt-1 z-10">
-          <p className="text-[11px] font-medium text-zinc-400 truncate">
-            {pose.distance || pose.cameraDistance} • {pose.phoneOrientation || pose.framing}
+        <div className="absolute bottom-2 left-2 right-2 text-center z-10 pointer-events-none">
+          <p className="text-[11px] font-medium text-white/90 drop-shadow-md truncate px-1">
+            {pose.distance || pose.cameraDistance}
           </p>
         </div>
       )}

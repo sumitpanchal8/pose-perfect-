@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   X,
   Camera,
@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Share2,
   CheckCircle2,
+  Upload,
 } from 'lucide-react';
 import { Pose } from '../types';
 import { PoseIllustration } from './PoseIllustration';
@@ -24,6 +25,7 @@ interface PoseDetailsModalProps {
   onToggleFavorite: (id: string) => void;
   onNavigateNext?: () => void;
   onNavigatePrev?: () => void;
+  onReplaceImage?: (poseId: string, dataUrl: string) => void;
 }
 
 export const PoseDetailsModal: React.FC<PoseDetailsModalProps> = ({
@@ -34,10 +36,24 @@ export const PoseDetailsModal: React.FC<PoseDetailsModalProps> = ({
   onToggleFavorite,
   onNavigateNext,
   onNavigatePrev,
+  onReplaceImage,
 }) => {
   const [copied, setCopied] = React.useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!pose) return null;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && onReplaceImage) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        onReplaceImage(pose.id, dataUrl);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleShare = () => {
     const titleText = pose.title || pose.name;
@@ -129,8 +145,25 @@ export const PoseDetailsModal: React.FC<PoseDetailsModalProps> = ({
         <div className="p-5 sm:p-6 space-y-6">
           {/* Top Hero Section with Preview & Main Metadata */}
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-center">
-            <div className="sm:col-span-5">
-              <PoseIllustration pose={pose} className="h-56 sm:h-64 shadow-inner" />
+            <div className="sm:col-span-5 flex flex-col items-center">
+              <PoseIllustration pose={pose} className="h-56 sm:h-64 shadow-inner w-full" />
+              
+              {/* Upload / Replace Picture button */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-zinc-800/80 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 hover:text-white transition-all"
+              >
+                <Upload className="h-3.5 w-3.5 text-cyan-400" />
+                <span>{pose.image ? 'Replace / Upload Photo' : 'Upload Pose Photo'}</span>
+              </button>
             </div>
 
             <div className="sm:col-span-7 space-y-2.5">
@@ -227,7 +260,7 @@ export const PoseDetailsModal: React.FC<PoseDetailsModalProps> = ({
             className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/25 hover:from-cyan-400 hover:to-indigo-500 active:scale-[0.99] transition-all"
           >
             <Camera className="h-5 w-5" />
-            <span>Open Camera With This Pose Overlay</span>
+            <span>Open Camera (60% Transparent Guide Overlay)</span>
           </button>
         </div>
       </div>

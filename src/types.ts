@@ -1,48 +1,37 @@
 export type Gender = 'male' | 'female';
 
 export type PhotoCategory =
-  | 'selfie'
-  | 'mirror-selfie'
-  | 'normal'
-  | 'aesthetic'
+  | 'traditional'
   | 'professional'
-  | 'fashion'
-  | 'outdoor'
-  | 'social-media'
-  | 'friends'
-  | 'couple';
+  | 'mirror-selfie'
+  | 'aesthetic';
 
 export type PoseCategory = PhotoCategory;
 
 export type LocationType =
-  | 'bedroom'
-  | 'bathroom'
-  | 'mirror'
-  | 'cafe'
-  | 'college'
+  | 'indoor'
+  | 'outdoor'
+  | 'studio'
+  | 'temple'
   | 'office'
+  | 'mirror'
   | 'street'
-  | 'park'
-  | 'beach'
-  | 'gym'
-  | 'car'
-  | 'elevator'
+  | 'cafe'
   | 'home'
-  | 'travel'
   | 'other';
 
 export type PoseLocation = LocationType;
 
 export type MoodType =
-  | 'happy'
-  | 'cool'
-  | 'aesthetic'
-  | 'confident'
-  | 'natural'
-  | 'moody'
+  | 'traditional'
+  | 'regal'
   | 'professional'
-  | 'stylish'
-  | 'relaxed';
+  | 'confident'
+  | 'aesthetic'
+  | 'casual'
+  | 'cool'
+  | 'moody'
+  | 'natural';
 
 export type PoseMood = MoodType;
 
@@ -78,6 +67,8 @@ export interface Pose {
   tags: string[];
   svgType: string;
   accentColor?: string;
+  image?: string;
+  isCustomUpload?: boolean;
 }
 
 export interface CategoryInfo {
@@ -89,13 +80,14 @@ export interface CategoryInfo {
 }
 
 export interface OverlaySettings {
-  opacity: number; // 0.1 to 1.0
+  opacity: number; // 0.1 to 1.0 (default 0.40 for 60% transparent, or 0.60)
   scale: number; // 0.7 to 1.4
   offsetX: number; // px
   offsetY: number; // px
   isMirrored: boolean;
   colorTheme: 'cyan' | 'green' | 'white' | 'gold' | 'rose';
   showGrid: boolean;
+  overlayMode: 'photo' | 'silhouette' | 'both';
 }
 
 export interface UserPreferences {

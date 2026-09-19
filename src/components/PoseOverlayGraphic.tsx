@@ -31,7 +31,7 @@ export const PoseOverlayGraphic: React.FC<PoseOverlayGraphicProps> = ({
     const type = pose.svgType;
 
     // 1. Close-up Selfies (Chest-up framing)
-    if (type.startsWith('selfie-') || pose.category === 'selfie') {
+    if (type.startsWith('selfie-')) {
       const isSide = type.includes('side') || type.includes('looking-away');
       const hasHand = type.includes('hair') || type.includes('cheek') || type.includes('glasses');
 
@@ -372,30 +372,54 @@ export const PoseOverlayGraphic: React.FC<PoseOverlayGraphicProps> = ({
     );
   };
 
+  const showPhoto = (settings.overlayMode === 'photo' || settings.overlayMode === 'both') && !!pose.image;
+  const showSilhouette = settings.overlayMode === 'silhouette' || settings.overlayMode === 'both' || !pose.image;
+
   return (
     <div
-      className={`pointer-events-none absolute inset-0 flex items-center justify-center select-none ${className}`}
+      className={`pointer-events-none absolute inset-0 flex items-center justify-center select-none overflow-hidden ${className}`}
       style={{
-        opacity: opacity,
         transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale}) ${isMirrored ? 'scaleX(-1)' : ''}`,
-        transition: 'transform 0.08s ease-out, opacity 0.15s ease-out',
+        transition: 'transform 0.08s ease-out',
       }}
     >
-      <svg
-        viewBox="0 0 400 520"
-        className="w-full h-full max-w-md max-h-[85vh] drop-shadow-[0_0_12px_rgba(0,0,0,0.5)]"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <defs>
-          <filter id="pose-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor={currentTheme.glow} />
-          </filter>
-        </defs>
+      {/* 60% Transparent Photo Ghost Overlay */}
+      {showPhoto && (
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-150"
+          style={{ opacity }}
+        >
+          <img
+            src={pose.image}
+            alt={pose.title || pose.name}
+            className="w-full h-full max-w-lg object-contain drop-shadow-[0_0_20px_rgba(0,0,0,0.8)] filter contrast-105"
+          />
+        </div>
+      )}
 
-        <g filter="url(#pose-glow)">
-          {renderAnatomyGuide()}
-        </g>
-      </svg>
+      {/* Silhouette Guide Overlay */}
+      {showSilhouette && (
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-150"
+          style={{ opacity: showPhoto ? Math.min(opacity * 1.2, 0.9) : opacity }}
+        >
+          <svg
+            viewBox="0 0 400 520"
+            className="w-full h-full max-w-md max-h-[85vh] drop-shadow-[0_0_12px_rgba(0,0,0,0.5)]"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <defs>
+              <filter id="pose-glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor={currentTheme.glow} />
+              </filter>
+            </defs>
+
+            <g filter="url(#pose-glow)">
+              {renderAnatomyGuide()}
+            </g>
+          </svg>
+        </div>
+      )}
     </div>
   );
 };

@@ -34,9 +34,9 @@ export const BeginnerGuideModal: React.FC<BeginnerGuideModalProps> = ({
   // Wizard state
   const [step, setStep] = useState<number>(1);
   const [wizardGender, setWizardGender] = useState<Gender>(currentGender);
-  const [wizardCategory, setWizardCategory] = useState<PoseCategory>('selfie');
-  const [wizardLocation, setWizardLocation] = useState<PoseLocation>('cafe');
-  const [wizardMood, setWizardMood] = useState<PoseMood>('natural');
+  const [wizardCategory, setWizardCategory] = useState<PoseCategory>('traditional');
+  const [wizardLocation, setWizardLocation] = useState<PoseLocation>('temple');
+  const [wizardMood, setWizardMood] = useState<PoseMood>('traditional');
 
   // Compute matched recommendations for step 5
   const getTopRecommendations = (): Pose[] => {

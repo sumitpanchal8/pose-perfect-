@@ -507,21 +507,84 @@ export const CameraView: React.FC<CameraViewProps> = ({
             </button>
           </div>
 
-          {/* Opacity Slider */}
+          {/* Overlay Mode Selector */}
+          <div>
+            <span className="text-zinc-400 block mb-1.5 font-medium">Guide Style</span>
+            <div className="flex gap-1.5">
+              {[
+                { id: 'photo', label: 'Photo (60% Ghost)' },
+                { id: 'both', label: 'Photo + Lines' },
+                { id: 'silhouette', label: 'Outline Only' },
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => updateSettings({ overlayMode: m.id as any })}
+                  className={`flex-1 py-1.5 px-2 rounded-lg border text-[11px] font-semibold text-center transition-all ${
+                    (overlaySettings.overlayMode || 'photo') === m.id
+                      ? 'bg-cyan-500 text-zinc-950 border-cyan-400 font-bold'
+                      : 'bg-zinc-900 text-zinc-400 border-white/5 hover:text-white'
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Opacity Slider with 60% Transparency Quick Preset */}
           <div>
             <div className="flex justify-between text-zinc-400 mb-1 font-medium">
-              <span>Transparency (Opacity)</span>
-              <span className="text-white">{Math.round(overlaySettings.opacity * 100)}%</span>
+              <span>Transparency Guide</span>
+              <span className="text-cyan-300 font-bold">
+                {Math.round((1 - overlaySettings.opacity) * 100)}% Transparent ({Math.round(overlaySettings.opacity * 100)}% Opacity)
+              </span>
             </div>
             <input
               type="range"
               min="0.1"
-              max="1.0"
+              max="0.9"
               step="0.05"
               value={overlaySettings.opacity}
               onChange={(e) => updateSettings({ opacity: parseFloat(e.target.value) })}
               className="w-full accent-cyan-400"
             />
+            {/* Quick preset buttons */}
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <button
+                type="button"
+                onClick={() => updateSettings({ opacity: 0.4 })}
+                className={`flex-1 py-1 rounded text-[10px] font-bold border transition-all ${
+                  Math.abs(overlaySettings.opacity - 0.4) < 0.05
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                    : 'bg-zinc-900 text-zinc-400 border-white/5 hover:text-white'
+                }`}
+              >
+                ★ 60% Transparent
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSettings({ opacity: 0.6 })}
+                className={`flex-1 py-1 rounded text-[10px] font-semibold border transition-all ${
+                  Math.abs(overlaySettings.opacity - 0.6) < 0.05
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                    : 'bg-zinc-900 text-zinc-400 border-white/5 hover:text-white'
+                }`}
+              >
+                40% Transparent
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSettings({ opacity: 0.2 })}
+                className={`flex-1 py-1 rounded text-[10px] font-semibold border transition-all ${
+                  Math.abs(overlaySettings.opacity - 0.2) < 0.05
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                    : 'bg-zinc-900 text-zinc-400 border-white/5 hover:text-white'
+                }`}
+              >
+                80% Transparent
+              </button>
+            </div>
           </div>
 
           {/* Size / Scale Buttons */}

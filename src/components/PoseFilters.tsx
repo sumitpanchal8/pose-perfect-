@@ -113,7 +113,7 @@ export const PoseFilters: React.FC<PoseFiltersProps> = ({
           <span>All Poses ({totalResults})</span>
         </button>
 
-        {CATEGORIES.map((cat: CategoryInfo) => (
+        {CATEGORIES.map((cat: CategoryInfo, idx: number) => (
           <button
             key={cat.id}
             onClick={() => onSelectCategory(cat.id)}
@@ -123,6 +123,9 @@ export const PoseFilters: React.FC<PoseFiltersProps> = ({
                 : 'bg-zinc-900/80 text-zinc-300 hover:text-white border border-white/5 hover:border-white/10'
             }`}
           >
+            <span className={`text-[10px] font-bold px-1 rounded ${selectedCategory === cat.id ? 'bg-zinc-950/20 text-zinc-950' : 'bg-zinc-800 text-cyan-400'}`}>
+              {idx + 1}
+            </span>
             <span>{cat.name}</span>
           </button>
         ))}

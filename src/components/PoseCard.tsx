@@ -28,6 +28,13 @@ export const PoseCard: React.FC<PoseCardProps> = ({
       <div className="relative w-full overflow-hidden rounded-xl">
         <PoseIllustration pose={pose} className="h-44 group-hover:scale-[1.02] transition-transform duration-300" />
 
+        {/* Floating Custom Badge if uploaded */}
+        {pose.isCustomUpload && (
+          <span className="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 rounded-md bg-emerald-500/80 text-[10px] font-bold text-zinc-950 backdrop-blur-md shadow-sm">
+            Uploaded
+          </span>
+        )}
+
         {/* Floating Favorite Button */}
         <button
           id={`fav-btn-${pose.id}`}

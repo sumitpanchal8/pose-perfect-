@@ -23,7 +23,14 @@ import { PoseDetailsModal } from './components/PoseDetailsModal';
 import { CameraView } from './components/CameraView';
 import { BeginnerGuideModal } from './components/BeginnerGuideModal';
 import { SettingsView } from './components/SettingsView';
-import { Heart, Sparkles, Shuffle, Camera, BookOpen, AlertCircle } from 'lucide-react';
+import { UploadPoseModal } from './components/UploadPoseModal';
+import {
+  loadCustomPoses,
+  saveCustomPose,
+  loadImageOverrides,
+  saveImageOverride,
+} from './utils/storage';
+import { Heart, Sparkles, Shuffle, Camera, BookOpen, AlertCircle, Upload } from 'lucide-react';
 
 export default function App() {
   // User Preferences State (persisted to localStorage)
@@ -32,12 +39,17 @@ export default function App() {
   // App View State ('catalog' | 'favorites' | 'settings' | 'camera')
   const [currentView, setCurrentView] = useState<'catalog' | 'favorites' | 'settings' | 'camera'>('catalog');
 
+  // Custom Poses & Image Overrides State
+  const [customPoses, setCustomPoses] = useState<Pose[]>(loadCustomPoses);
+  const [imageOverrides, setImageOverrides] = useState<Record<string, string>>(loadImageOverrides);
+
   // Active Poses State
   const [selectedPose, setSelectedPose] = useState<Pose | null>(null);
   const [cameraPose, setCameraPose] = useState<Pose | null>(null);
 
-  // Beginner Guide Modal
+  // Modals
   const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
+  const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
 
   // Filtering State
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +57,32 @@ export default function App() {
   const [selectedLocation, setSelectedLocation] = useState<PoseLocation | 'all'>('all');
   const [selectedMood, setSelectedMood] = useState<PoseMood | 'all'>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<PoseDifficulty | 'all'>('all');
+
+  // Handle Save New Custom Pose
+  const handleSaveCustomPose = (newPose: Pose) => {
+    const updated = saveCustomPose(newPose);
+    setCustomPoses(updated);
+  };
+
+  // Handle Replace Photo on Existing Pose
+  const handleReplaceImage = (poseId: string, dataUrl: string) => {
+    const updated = saveImageOverride(poseId, dataUrl);
+    setImageOverrides({ ...updated });
+    if (selectedPose && selectedPose.id === poseId) {
+      setSelectedPose({ ...selectedPose, image: dataUrl });
+    }
+  };
+
+  // Combine static ALL_POSES with custom poses and apply image overrides
+  const allMergedPoses = useMemo(() => {
+    const combined = [...customPoses, ...ALL_POSES];
+    return combined.map((p) => {
+      if (imageOverrides[p.id]) {
+        return { ...p, image: imageOverrides[p.id] };
+      }
+      return p;
+    });
+  }, [customPoses, imageOverrides]);
 
   // Handle Gender Switch
   const handleSelectGender = (newGender: Gender) => {
@@ -61,8 +99,8 @@ export default function App() {
 
   // Poses for currently selected gender
   const currentGenderPoses = useMemo(() => {
-    return ALL_POSES.filter((p: Pose) => p.gender === preferences.gender);
-  }, [preferences.gender]);
+    return allMergedPoses.filter((p: Pose) => p.gender === preferences.gender);
+  }, [allMergedPoses, preferences.gender]);
 
   // Daily Pose based on selected gender
   const dailyPose = useMemo(() => {
@@ -182,6 +220,7 @@ export default function App() {
         onOpenSettings={() => {
           setCurrentView(currentView === 'settings' ? 'catalog' : 'settings');
         }}
+        onOpenUpload={() => setShowUploadModal(true)}
         onNavigateHome={() => setCurrentView('catalog')}
         currentView={currentView}
       />
@@ -328,6 +367,7 @@ export default function App() {
           onToggleFavorite={handleToggleFavorite}
           onNavigateNext={handleNextDetailPose}
           onNavigatePrev={handlePrevDetailPose}
+          onReplaceImage={handleReplaceImage}
         />
       )}
 
@@ -335,12 +375,24 @@ export default function App() {
       {showGuideModal && (
         <BeginnerGuideModal
           onClose={() => setShowGuideModal(false)}
-          allPoses={ALL_POSES}
+          allPoses={allMergedPoses}
           currentGender={preferences.gender}
           onSelectAndLaunchPose={(pose) => {
             setShowGuideModal(false);
             handleLaunchCamera(pose);
           }}
+        />
+      )}
+
+      {/* Upload Pose Photo Modal */}
+      {showUploadModal && (
+        <UploadPoseModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          defaultGender={preferences.gender}
+          defaultCategory={selectedCategory !== 'all' ? selectedCategory : 'traditional'}
+          onSavePose={handleSaveCustomPose}
+          onLaunchCamera={(pose) => handleLaunchCamera(pose)}
         />
       )}
     </div>

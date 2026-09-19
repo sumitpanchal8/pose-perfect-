@@ -1,8 +1,10 @@
-import { Gender, OverlaySettings, UserPreferences } from '../types';
+import { Gender, OverlaySettings, Pose, UserPreferences } from '../types';
 
 const STORAGE_KEYS = {
-  PREFERENCES: 'poseperfect_user_prefs_v1',
-  OVERLAY: 'poseperfect_overlay_settings_v1',
+  PREFERENCES: 'poseperfect_user_prefs_v2',
+  OVERLAY: 'poseperfect_overlay_settings_v2',
+  CUSTOM_POSES: 'poseperfect_custom_poses_v2',
+  IMAGE_OVERRIDES: 'poseperfect_image_overrides_v2',
 };
 
 const DEFAULT_PREFS: UserPreferences = {
@@ -16,13 +18,14 @@ const DEFAULT_PREFS: UserPreferences = {
 };
 
 export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
-  opacity: 0.65,
+  opacity: 0.4, // 60% transparent (40% opacity) by default as requested
   scale: 1.0,
   offsetX: 0,
   offsetY: 0,
   isMirrored: false,
   colorTheme: 'cyan',
   showGrid: true,
+  overlayMode: 'photo',
 };
 
 export function loadUserPreferences(): UserPreferences {
@@ -99,4 +102,47 @@ export function addRecentlyCaptured(poseId: string) {
   const filtered = prefs.recentlyCaptured.filter(id => id !== poseId);
   const updated = [poseId, ...filtered].slice(0, 20);
   saveUserPreferences({ recentlyCaptured: updated });
+}
+
+// Custom Uploaded Poses & Image Overrides
+export function loadCustomPoses(): Pose[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_POSES);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomPose(pose: Pose): Pose[] {
+  try {
+    const existing = loadCustomPoses().filter(p => p.id !== pose.id);
+    const updated = [pose, ...existing];
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_POSES, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [];
+  }
+}
+
+export function loadImageOverrides(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.IMAGE_OVERRIDES);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+export function saveImageOverride(poseId: string, dataUrl: string): Record<string, string> {
+  try {
+    const existing = loadImageOverrides();
+    existing[poseId] = dataUrl;
+    localStorage.setItem(STORAGE_KEYS.IMAGE_OVERRIDES, JSON.stringify(existing));
+    return existing;
+  } catch {
+    return {};
+  }
 }
