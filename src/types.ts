@@ -4,7 +4,8 @@ export type PhotoCategory =
   | 'traditional'
   | 'professional'
   | 'mirror-selfie'
-  | 'aesthetic';
+  | 'aesthetic'
+  | 'custom';
 
 export type PoseCategory = PhotoCategory;
 

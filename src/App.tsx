@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Gender,
   Pose,
@@ -50,6 +50,7 @@ export default function App() {
   // Modals
   const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
+  const quickUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   // Filtering State
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +63,52 @@ export default function App() {
   const handleSaveCustomPose = (newPose: Pose) => {
     const updated = saveCustomPose(newPose);
     setCustomPoses(updated);
+  };
+
+  // Quick direct upload chosen picture & start camera immediately
+  const handleQuickUploadAndLaunchCamera = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        const newPose: Pose = {
+          id: `custom-${Date.now()}`,
+          name: cleanName || 'My Chosen Reference Pose',
+          title: cleanName || 'My Chosen Reference Pose',
+          gender: preferences.gender,
+          category: 'custom',
+          subCategory: 'Upload Your Own',
+          difficulty: 'beginner',
+          location: ['indoor', 'outdoor', 'studio'],
+          mood: ['aesthetic'],
+          image: dataUrl,
+          isCustomUpload: true,
+          instructions: [
+            'Align your posture with the 60% transparent photo guide on screen',
+            'Adjust your camera distance and body angle to match your chosen picture',
+            'Tap the shutter button to click your photo!',
+          ],
+          description: 'Uploaded reference picture for posing in camera mode.',
+          bodyPosition: 'Align posture with the 60% transparent photo guide on screen.',
+          handPosition: 'Position hands as displayed in your chosen picture.',
+          headPosition: 'Tilt head to match eye-line of reference.',
+          cameraAngle: 'Eye level or matched to photo reference',
+          cameraDistance: 'Medium shot (approx. 4–6 feet)',
+          lighting: 'Natural soft light',
+          framing: 'Align yourself within the 60% transparent frame',
+          backgroundTip: 'Clean background matching reference style',
+          tags: ['custom', 'chosen-photo', 'upload-your-own'],
+          svgType: 'custom-pose',
+        };
+        handleSaveCustomPose(newPose);
+        setCameraPose(newPose);
+        setSelectedPose(null);
+        setCurrentView('camera');
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Handle Replace Photo on Existing Pose
@@ -200,6 +247,7 @@ export default function App() {
           setCameraPose(null);
         }}
         onSelectPose={(newPose) => setCameraPose(newPose)}
+        onSaveCustomPose={handleSaveCustomPose}
         soundEnabled={preferences.soundEnabled}
       />
     );
@@ -245,6 +293,7 @@ export default function App() {
                 onSelectPose={handleOpenPoseDetails}
                 onQuickStartCamera={(p) => handleLaunchCamera(p)}
                 onOpenGuide={() => setShowGuideModal(true)}
+                onOpenUpload={() => quickUploadInputRef.current?.click()}
               />
             )}
 
@@ -288,6 +337,42 @@ export default function App() {
                 totalResults={filteredPoses.length}
               />
 
+              {/* Option 5: Upload Your Own Reference Banner */}
+              {selectedCategory === 'custom' && (
+                <div className="rounded-2xl border border-cyan-500/40 bg-gradient-to-r from-cyan-950/40 via-zinc-900/90 to-emerald-950/30 p-5 shadow-xl">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="space-y-1 text-center sm:text-left">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-bold border border-cyan-500/30">
+                        <span>OPTION 5</span>
+                        <span>•</span>
+                        <span>Upload Your Own & Pose</span>
+                      </div>
+                      <h3 className="text-base font-bold text-white">Pose According to Any Picture You Choose</h3>
+                      <p className="text-xs text-zinc-300 max-w-xl leading-relaxed">
+                        Select any picture you like (Pinterest, Instagram, fashion shot, or photo of a friend). We'll superimpose it directly onto your live camera at 60% transparency so you can pose like it and click your photo!
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <button
+                        id="quick-upload-chosen-picture-btn"
+                        onClick={() => quickUploadInputRef.current?.click()}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500 text-zinc-950 text-xs font-bold hover:bg-cyan-400 active:scale-95 transition-all shadow-md shadow-cyan-500/20"
+                      >
+                        <Upload className="h-4 w-4" />
+                        <span>Choose Picture & Start Camera</span>
+                      </button>
+                      <button
+                        onClick={() => setShowUploadModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-zinc-800 text-zinc-200 border border-white/10 text-xs font-semibold hover:text-white hover:bg-zinc-700 active:scale-95 transition-all"
+                      >
+                        <span>Add with Details</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Poses Grid */}
               {filteredPoses.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -301,6 +386,29 @@ export default function App() {
                       onLaunchCamera={handleLaunchCamera}
                     />
                   ))}
+                </div>
+              ) : selectedCategory === 'custom' ? (
+                /* Dedicated Empty state for Option 5 (Upload Your Own) */
+                <div className="rounded-3xl border border-cyan-500/30 bg-zinc-900/60 p-12 text-center space-y-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 mx-auto">
+                    <Camera className="h-8 w-8" />
+                  </div>
+                  <div className="space-y-1.5 max-w-md mx-auto">
+                    <h3 className="text-lg font-bold text-white">Upload Your Chosen Picture to Pose</h3>
+                    <p className="text-xs text-zinc-300 leading-relaxed">
+                      Choose any photo you like from your phone or device. Your live camera will open with this photo as a 60% transparent guide so you can match the posture and click your picture!
+                    </p>
+                  </div>
+                  <div className="pt-2 flex justify-center gap-3">
+                    <button
+                      id="empty-state-choose-picture-btn"
+                      onClick={() => quickUploadInputRef.current?.click()}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500 text-zinc-950 text-xs font-bold hover:bg-cyan-400 active:scale-95 transition-all shadow-lg shadow-cyan-500/20"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span>Select Picture from Device & Pose</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 /* Empty state */
@@ -395,6 +503,15 @@ export default function App() {
           onLaunchCamera={(pose) => handleLaunchCamera(pose)}
         />
       )}
+
+      {/* Quick Hidden File Input to Pick Photo and Immediately Launch Camera */}
+      <input
+        ref={quickUploadInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleQuickUploadAndLaunchCamera}
+      />
     </div>
   );
 }

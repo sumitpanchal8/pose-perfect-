@@ -87,6 +87,7 @@ export const UploadPoseModal: React.FC<UploadPoseModalProps> = ({
       'professional': 'Professional',
       'mirror-selfie': 'Mirror Selfie',
       'aesthetic': 'Aesthetic',
+      'custom': 'Upload Your Own',
     };
 
     const finalName = poseName.trim() || `${selectedGender === 'female' ? 'Female' : 'Male'} ${categoryNames[selectedCategory]} Pose`;
@@ -165,7 +166,7 @@ export const UploadPoseModal: React.FC<UploadPoseModalProps> = ({
             <label className="text-xs font-semibold text-zinc-300 block">
               1. Choose Option (Category)
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {CATEGORIES.map((cat, idx) => (
                 <button
                   key={cat.id}
@@ -180,9 +181,9 @@ export const UploadPoseModal: React.FC<UploadPoseModalProps> = ({
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-zinc-800 text-xs font-bold text-cyan-300">
                     {idx + 1}
                   </span>
-                  <div>
-                    <span className="text-xs font-bold block text-white">{cat.name}</span>
-                    <span className="text-[10px] text-zinc-400 line-clamp-1">{cat.icon}</span>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold block text-white truncate">{cat.name}</span>
+                    <span className="text-[10px] text-zinc-400 truncate block">{cat.icon}</span>
                   </div>
                 </button>
               ))}

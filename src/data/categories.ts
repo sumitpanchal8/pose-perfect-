@@ -54,6 +54,18 @@ export const PHOTO_CATEGORIES: CategoryInfo[] = [
       'Cinematic twilight',
     ],
   },
+  {
+    id: 'custom',
+    name: 'Upload Your Own',
+    icon: '📸',
+    description: 'Upload any picture you like, pose according to it with a 60% transparent guide, and click your picture',
+    subcategories: [
+      'My Chosen Pictures',
+      'Pinterest Inspiration',
+      'Instagram Favorites',
+      'Custom Reference Poses',
+    ],
+  },
 ];
 
 export const CATEGORIES = PHOTO_CATEGORIES;

@@ -319,7 +319,11 @@ export function filterPoses(
   return poses.filter((pose) => {
     // 1. Category filter
     if (filters.category && filters.category !== 'all') {
-      if (pose.category !== filters.category) return false;
+      if (filters.category === 'custom') {
+        if (pose.category !== 'custom' && !pose.isCustomUpload) return false;
+      } else if (pose.category !== filters.category) {
+        return false;
+      }
     }
 
     // 2. Location filter

@@ -113,22 +113,29 @@ export const PoseFilters: React.FC<PoseFiltersProps> = ({
           <span>All Poses ({totalResults})</span>
         </button>
 
-        {CATEGORIES.map((cat: CategoryInfo, idx: number) => (
-          <button
-            key={cat.id}
-            onClick={() => onSelectCategory(cat.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
-              selectedCategory === cat.id
-                ? 'bg-cyan-500 text-zinc-950 font-semibold shadow-sm shadow-cyan-500/20'
-                : 'bg-zinc-900/80 text-zinc-300 hover:text-white border border-white/5 hover:border-white/10'
-            }`}
-          >
-            <span className={`text-[10px] font-bold px-1 rounded ${selectedCategory === cat.id ? 'bg-zinc-950/20 text-zinc-950' : 'bg-zinc-800 text-cyan-400'}`}>
-              {idx + 1}
-            </span>
-            <span>{cat.name}</span>
-          </button>
-        ))}
+        {CATEGORIES.map((cat: CategoryInfo, idx: number) => {
+          const isCustom = cat.id === 'custom';
+          const isSelected = selectedCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => onSelectCategory(cat.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
+                isSelected
+                  ? 'bg-cyan-500 text-zinc-950 font-semibold shadow-sm shadow-cyan-500/20'
+                  : isCustom
+                  ? 'bg-gradient-to-r from-cyan-950/70 to-emerald-950/70 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 hover:text-white'
+                  : 'bg-zinc-900/80 text-zinc-300 hover:text-white border border-white/5 hover:border-white/10'
+              }`}
+            >
+              <span className={`text-[10px] font-bold px-1 rounded ${isSelected ? 'bg-zinc-950/20 text-zinc-950' : isCustom ? 'bg-cyan-500/30 text-cyan-200' : 'bg-zinc-800 text-cyan-400'}`}>
+                {idx + 1}
+              </span>
+              <span>{cat.name}</span>
+              {isCustom && <span className="text-[11px]">📸</span>}
+            </button>
+          );
+        })}
       </div>
 
       {/* Advanced Filter Drawer (Location, Mood, Difficulty) */}

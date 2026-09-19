@@ -25,6 +25,7 @@ import {
   EyeOff,
   Palette,
   Sun,
+  Upload,
 } from 'lucide-react';
 import { Pose, OverlaySettings, AIPoseAnalysisResult } from '../types';
 import { PoseOverlayGraphic } from './PoseOverlayGraphic';
@@ -36,6 +37,7 @@ interface CameraViewProps {
   allPoses: Pose[];
   onBackToPoses: () => void;
   onSelectPose: (pose: Pose) => void;
+  onSaveCustomPose?: (pose: Pose) => void;
   soundEnabled: boolean;
 }
 
@@ -44,12 +46,14 @@ export const CameraView: React.FC<CameraViewProps> = ({
   allPoses,
   onBackToPoses,
   onSelectPose,
+  onSaveCustomPose,
   soundEnabled,
 }) => {
   // Video & Stream Refs
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const uploadRefInputRef = useRef<HTMLInputElement | null>(null);
 
   // Camera State
   const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
@@ -243,6 +247,54 @@ export const CameraView: React.FC<CameraViewProps> = ({
       reader.onload = () => {
         setCapturedImage(reader.result as string);
         addRecentlyCaptured(pose.id);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Upload user's chosen reference picture to pose according to it
+  const handleUploadReferenceImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        const customPose: Pose = {
+          id: `custom-${Date.now()}`,
+          name: cleanName || 'My Chosen Reference Pose',
+          title: cleanName || 'My Chosen Reference Pose',
+          gender: pose.gender,
+          category: 'custom',
+          subCategory: 'Upload Your Own',
+          difficulty: 'beginner',
+          location: ['indoor', 'outdoor', 'studio'],
+          mood: ['aesthetic'],
+          image: dataUrl,
+          isCustomUpload: true,
+          instructions: [
+            'Align your posture with the 60% transparent photo guide on screen',
+            'Adjust your camera distance and body angle to match your chosen reference',
+            'Click the shutter button when you are in position',
+          ],
+          description: 'Uploaded reference picture for live camera posing and alignment.',
+          bodyPosition: 'Match posture directly to the 60% transparent reference picture overlay.',
+          handPosition: 'Position hands as displayed in your uploaded photo.',
+          headPosition: 'Tilt head to match eye-line of reference photo.',
+          cameraAngle: 'Eye level or matched to photo reference',
+          cameraDistance: 'Medium shot (approx. 4–6 feet)',
+          lighting: 'Natural soft light',
+          framing: 'Align yourself within the 60% transparent frame',
+          backgroundTip: 'Clean background matching reference style',
+          tags: ['custom', 'chosen-photo', 'upload-your-own'],
+          svgType: 'custom-pose',
+        };
+        onSelectPose(customPose);
+        if (onSaveCustomPose) {
+          onSaveCustomPose(customPose);
+        }
+        setIsOverlayVisible(true);
+        updateSettings({ overlayMode: 'photo', opacity: 0.40 });
       };
       reader.readAsDataURL(file);
     }
@@ -480,6 +532,26 @@ export const CameraView: React.FC<CameraViewProps> = ({
           >
             <Sliders className="h-4 w-4" />
           </button>
+
+          {/* Upload Chosen Reference Photo to Pose */}
+          <button
+            id="camera-upload-reference-top-btn"
+            onClick={() => uploadRefInputRef.current?.click()}
+            title="Upload your own picture to pose according to it"
+            className="flex h-10 items-center gap-1.5 px-3 rounded-full backdrop-blur-md border border-cyan-500/40 bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 text-cyan-300 text-xs font-semibold hover:border-cyan-400 hover:text-white active:scale-95 transition-all shadow-sm"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Upload Picture</span>
+          </button>
+
+          {/* Hidden reference photo input */}
+          <input
+            ref={uploadRefInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleUploadReferenceImage}
+          />
         </div>
       </div>
 
@@ -504,6 +576,26 @@ export const CameraView: React.FC<CameraViewProps> = ({
               className="text-xs text-cyan-400 hover:underline"
             >
               Reset Guide
+            </button>
+          </div>
+
+          {/* Upload Reference Photo directly from Drawer */}
+          <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-2.5 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <span className="font-bold text-white block text-xs truncate">
+                {pose.isCustomUpload ? `Current: ${pose.name}` : 'Upload Any Picture to Pose'}
+              </span>
+              <span className="text-[10px] text-zinc-400 block">
+                Choose a photo to overlay at 60% transparency
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => uploadRefInputRef.current?.click()}
+              className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-cyan-500 text-zinc-950 font-bold text-xs hover:bg-cyan-400 active:scale-95 shadow-sm"
+            >
+              <Upload className="h-3 w-3" />
+              <span>{pose.isCustomUpload ? 'Change' : 'Upload'}</span>
             </button>
           </div>
 
